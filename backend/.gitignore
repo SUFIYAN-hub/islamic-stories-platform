@@ -27,6 +27,6 @@ Thumbs.db
 # Uploads (for local development)
 uploads/
 
-public/audio/*
-public/images/*
+# public/audio/*
+# public/images/*
 .DS_Store
