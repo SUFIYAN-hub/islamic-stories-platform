@@ -163,20 +163,29 @@ router.get('/stories/:id', async (req, res) => {
 });
 
 // POST - Create new story
-router.post('/stories', async (req, res) => {
-  try {
-    const story = await Story.create(req.body);
-    
-    // Update category story count
-    await Category.findByIdAndUpdate(story.category, {
-      $inc: { storyCount: 1 }
-    });
-    
-    res.status(201).json({ success: true, data: story });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+router.post(
+  '/stories',
+  protect,
+  restrictTo('admin'),
+  upload.fields([{ name: 'audio', maxCount: 1 }]),
+  async (req, res) => {
+    try {
+      const audioUrl = req.files?.audio?.[0]
+        ? `${req.protocol}://${req.get('host')}/audio/${req.files.audio[0].filename}`
+        : req.body.audioUrl;
+
+      const story = await Story.create({
+        ...req.body,
+        audioUrl,
+      });
+
+      res.status(201).json({ success: true, data: story });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
-});
+);
+
 
 // PUT - Update story
 router.put('/stories/:id', async (req, res) => {

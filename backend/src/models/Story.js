@@ -27,13 +27,25 @@ const storySchema = new mongoose.Schema({
     required: true
   },
   audioUrl: {
-    type: String,
-    required: [true, 'Audio URL is required']
-  },
-  thumbnailUrl: {
-    type: String,
-    default: '/images/default-thumbnail.jpg'
-  },
+  type: String,
+  required: true,
+  get: function(url) {
+    // Convert http to https for Render deployments
+    if (url && url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    return url;
+  }
+},
+  thumbnail: {
+  type: String,
+  get: function(url) {
+    if (url && url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    return url;
+  }
+},
   duration: {
     type: Number, // in seconds
     required: true
@@ -77,7 +89,9 @@ const storySchema = new mongoose.Schema({
     default: 0
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { getters: true },
+  toObject: { getters: true }  
 });
 
 // Create slug before saving
