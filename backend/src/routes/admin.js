@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const { audioStorage, imageStorage } = require('../config/cloudinary');
 const path = require('path');
 const fs = require('fs');
 const Story = require('../models/Story');
@@ -51,12 +52,18 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
+const upload = multer({
+  storage: audioStorage,
   limits: {
-    fileSize: 50 * 1024 * 1024 // 50MB max
-  }
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+});
+
+const uploadImage = multer({
+  storage: imageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
 });
 
 // ============================================
@@ -163,29 +170,55 @@ router.get('/stories/:id', async (req, res) => {
 });
 
 // POST - Create new story
-router.post(
-  '/stories',
-  protect,
+// Update your story upload route:
+router.post('/stories', 
+  protect, 
   restrictTo('admin'),
-  upload.fields([{ name: 'audio', maxCount: 1 }]),
+  upload.fields([
+    { name: 'audio', maxCount: 1 },
+    { name: 'thumbnail', maxCount: 1 }
+  ]),
   async (req, res) => {
     try {
-      const audioUrl = req.files?.audio?.[0]
-        ? `${req.protocol}://${req.get('host')}/audio/${req.files.audio[0].filename}`
-        : req.body.audioUrl;
-
+      const { title, titleArabic, description, category, narrator, ageGroup, duration, language } = req.body;
+      
+      // Cloudinary URLs are automatically in req.files
+      const audioUrl = req.files.audio ? req.files.audio[0].path : null;
+      const thumbnail = req.files.thumbnail ? req.files.thumbnail[0].path : null;
+      
+      if (!audioUrl) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Audio file is required' 
+        });
+      }
+      
       const story = await Story.create({
-        ...req.body,
-        audioUrl,
+        title,
+        titleArabic,
+        description,
+        audioUrl,  // Already HTTPS from Cloudinary!
+        thumbnail,
+        category,
+        narrator,
+        ageGroup,
+        duration: parseInt(duration),
+        language: language || 'hindi',
+        slug: title.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
       });
-
-      res.status(201).json({ success: true, data: story });
+      
+      res.status(201).json({
+        success: true,
+        data: story
+      });
     } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+      res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
     }
   }
 );
-
 
 // PUT - Update story
 router.put('/stories/:id', async (req, res) => {
