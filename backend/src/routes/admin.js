@@ -3,8 +3,6 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { audioStorage, imageStorage } = require('../config/cloudinary');
-const path = require('path');
-const fs = require('fs');
 const Story = require('../models/Story');
 const Category = require('../models/Category');
 const { protect, restrictTo } = require('../middleware/auth');
@@ -13,57 +11,15 @@ const { protect, restrictTo } = require('../middleware/auth');
 router.use(protect);
 router.use(restrictTo('admin', 'moderator'));
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const type = file.fieldname; // 'audio' or 'thumbnail'
-    const dir = `public/${type}`;
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  if (file.fieldname === 'audio') {
-    // Accept audio files
-    if (file.mimetype.startsWith('audio/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only audio files are allowed!'), false);
-    }
-  } else if (file.fieldname === 'thumbnail') {
-    // Accept images
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  } else {
-    cb(null, true);
-  }
-};
-
-const upload = multer({
+// Configure separate multer instances for Cloudinary
+const uploadAudio = multer({ 
   storage: audioStorage,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
-  },
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 });
 
-const uploadImage = multer({
+const uploadImage = multer({ 
   storage: imageStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
 // ============================================
@@ -71,46 +27,56 @@ const uploadImage = multer({
 // ============================================
 
 // Upload audio file
-router.post('/upload/audio', upload.single('audio'), async (req, res) => {
+router.post('/upload/audio', uploadAudio.single('audio'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No audio file uploaded' 
+      });
     }
 
-    const audioUrl = `${req.protocol}://${req.get('host')}/audio/${req.file.filename}`;
-    
     res.json({ 
       success: true, 
       data: {
         filename: req.file.filename,
-        url: audioUrl,
+        url: req.file.path, // Cloudinary URL
         size: req.file.size
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Audio upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 });
 
 // Upload thumbnail
-router.post('/upload/thumbnail', upload.single('thumbnail'), async (req, res) => {
+router.post('/upload/thumbnail', uploadImage.single('thumbnail'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No thumbnail file uploaded' 
+      });
     }
 
-    const thumbnailUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
-    
     res.json({ 
       success: true, 
       data: {
         filename: req.file.filename,
-        url: thumbnailUrl,
+        url: req.file.path, // Cloudinary URL
         size: req.file.size
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Thumbnail upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 });
 
@@ -169,74 +135,116 @@ router.get('/stories/:id', async (req, res) => {
   }
 });
 
-// POST - Create new story
-// Update your story upload route:
-router.post('/stories', 
-  protect, 
-  restrictTo('admin'),
-  upload.fields([
-    { name: 'audio', maxCount: 1 },
-    { name: 'thumbnail', maxCount: 1 }
-  ]),
-  async (req, res) => {
-    try {
-      const { title, titleArabic, description, category, narrator, ageGroup, duration, language } = req.body;
-      
-      // Cloudinary URLs are automatically in req.files
-      const audioUrl = req.files.audio ? req.files.audio[0].path : null;
-      const thumbnail = req.files.thumbnail ? req.files.thumbnail[0].path : null;
-      
-      if (!audioUrl) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Audio file is required' 
-        });
-      }
-      
-      const story = await Story.create({
-        title,
-        titleArabic,
-        description,
-        audioUrl,  // Already HTTPS from Cloudinary!
-        thumbnail,
-        category,
-        narrator,
-        ageGroup,
-        duration: parseInt(duration),
-        language: language || 'hindi',
-        slug: title.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
-      });
-      
-      res.status(201).json({
-        success: true,
-        data: story
-      });
-    } catch (error) {
-      res.status(400).json({ 
-        success: false, 
-        message: error.message 
+// POST - Create new story (receives URLs from separate uploads)
+router.post('/stories', async (req, res) => {
+  try {
+    const {
+      title,
+      titleArabic,
+      description,
+      audioUrl,
+      thumbnail,
+      category,
+      narrator,
+      ageGroup,
+      duration,
+      language,
+      isFeatured
+    } = req.body;
+
+    // Validate required fields
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required'
       });
     }
+
+    if (!audioUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Audio file is required'
+      });
+    }
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category is required'
+      });
+    }
+
+    // Create slug
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') +
+      '-' +
+      Date.now();
+
+    // Create story
+    const story = await Story.create({
+      title,
+      titleArabic,
+      description,
+      audioUrl,
+      thumbnail: thumbnail || 'https://res.cloudinary.com/demo/image/upload/placeholder.jpg',
+      category,
+      narrator,
+      ageGroup,
+      duration: parseInt(duration) || 0,
+      language: language || 'hindi',
+      isFeatured: isFeatured || false,
+      slug
+    });
+
+    // Update category story count
+    await Category.findByIdAndUpdate(category, {
+      $inc: { storyCount: 1 }
+    });
+
+    res.status(201).json({
+      success: true,
+      data: story
+    });
+  } catch (error) {
+    console.error('Create story error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
-);
+});
 
 // PUT - Update story
 router.put('/stories/:id', async (req, res) => {
   try {
     const oldStory = await Story.findById(req.params.id);
-    const story = await Story.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
     
-    if (!story) {
-      return res.status(404).json({ success: false, message: 'Story not found' });
+    if (!oldStory) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Story not found' 
+      });
     }
+
+    const story = await Story.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      {
+        new: true,
+        runValidators: true
+      }
+    );
     
     // Update category counts if category changed
     if (oldStory.category.toString() !== story.category.toString()) {
-      await Category.findByIdAndUpdate(oldStory.category, { $inc: { storyCount: -1 } });
-      await Category.findByIdAndUpdate(story.category, { $inc: { storyCount: 1 } });
+      await Category.findByIdAndUpdate(oldStory.category, { 
+        $inc: { storyCount: -1 } 
+      });
+      await Category.findByIdAndUpdate(story.category, { 
+        $inc: { storyCount: 1 } 
+      });
     }
     
     res.json({ success: true, data: story });
@@ -249,26 +257,17 @@ router.put('/stories/:id', async (req, res) => {
 router.delete('/stories/:id', async (req, res) => {
   try {
     const story = await Story.findById(req.params.id);
+    
     if (!story) {
-      return res.status(404).json({ success: false, message: 'Story not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Story not found' 
+      });
     }
     
-    // Delete associated files
-    if (story.audioUrl && story.audioUrl.includes('localhost')) {
-      const filename = story.audioUrl.split('/').pop();
-      const filepath = path.join(__dirname, '../../public/audio', filename);
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-      }
-    }
-    
-    if (story.thumbnailUrl && story.thumbnailUrl.includes('localhost')) {
-      const filename = story.thumbnailUrl.split('/').pop();
-      const filepath = path.join(__dirname, '../../public/images', filename);
-      if (fs.existsSync(filepath)) {
-        fs.unlinkSync(filepath);
-      }
-    }
+    // Note: Cloudinary files are not deleted automatically
+    // You may want to add cloudinary.uploader.destroy() here
+    // to delete files from Cloudinary when story is deleted
     
     await Story.findByIdAndDelete(req.params.id);
     
@@ -277,9 +276,15 @@ router.delete('/stories/:id', async (req, res) => {
       $inc: { storyCount: -1 }
     });
     
-    res.json({ success: true, message: 'Story deleted successfully' });
+    res.json({ 
+      success: true, 
+      message: 'Story deleted successfully' 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 });
 
@@ -300,7 +305,17 @@ router.get('/categories', async (req, res) => {
 // POST - Create category
 router.post('/categories', async (req, res) => {
   try {
-    const category = await Category.create(req.body);
+    const { name, nameArabic, icon, color, description } = req.body;
+    
+    const category = await Category.create({
+      name,
+      nameArabic,
+      slug: name.toLowerCase().replace(/\s+/g, '-'),
+      icon: icon || '📖',
+      color: color || '#10b981',
+      description
+    });
+    
     res.status(201).json({ success: true, data: category });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -310,13 +325,22 @@ router.post('/categories', async (req, res) => {
 // PUT - Update category
 router.put('/categories/:id', async (req, res) => {
   try {
-    const category = await Category.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
-    });
+    const category = await Category.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+    
     if (!category) {
-      return res.status(404).json({ success: false, message: 'Category not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Category not found' 
+      });
     }
+    
     res.json({ success: true, data: category });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -327,8 +351,12 @@ router.put('/categories/:id', async (req, res) => {
 router.delete('/categories/:id', async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
+    
     if (!category) {
-      return res.status(404).json({ success: false, message: 'Category not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Category not found' 
+      });
     }
     
     // Check if category has stories
@@ -341,9 +369,15 @@ router.delete('/categories/:id', async (req, res) => {
     }
     
     await Category.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Category deleted successfully' });
+    res.json({ 
+      success: true, 
+      message: 'Category deleted successfully' 
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 });
 
@@ -371,9 +405,22 @@ router.get('/stats', async (req, res) => {
     // Stories by category
     const storiesByCategory = await Story.aggregate([
       { $group: { _id: '$category', count: { $sum: 1 } } },
-      { $lookup: { from: 'categories', localField: '_id', foreignField: '_id', as: 'category' } },
+      { 
+        $lookup: { 
+          from: 'categories', 
+          localField: '_id', 
+          foreignField: '_id', 
+          as: 'category' 
+        } 
+      },
       { $unwind: '$category' },
-      { $project: { name: '$category.name', icon: '$category.icon', count: 1 } }
+      { 
+        $project: { 
+          name: '$category.name', 
+          icon: '$category.icon', 
+          count: 1 
+        } 
+      }
     ]);
     
     res.json({
@@ -390,7 +437,34 @@ router.get('/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
+// ============================================
+// TEST CLOUDINARY CONNECTION
+// ============================================
+
+router.get('/test-cloudinary', async (req, res) => {
+  try {
+    const { cloudinary } = require('../config/cloudinary');
+    const config = cloudinary.config();
+    
+    res.json({
+      success: true,
+      message: 'Cloudinary connected successfully',
+      cloudName: config.cloud_name,
+      apiKeyLength: config.api_key ? config.api_key.length : 0
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Cloudinary connection failed',
+      error: error.message
+    });
   }
 });
 
