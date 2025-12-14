@@ -188,7 +188,7 @@ router.post('/stories', async (req, res) => {
       titleArabic,
       description,
       audioUrl,
-      thumbnail: thumbnail || 'https://res.cloudinary.com/demo/image/upload/placeholder.jpg',
+      thumbnail: thumbnail || null,
       category,
       narrator,
       ageGroup,
