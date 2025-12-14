@@ -374,6 +374,16 @@ export default function NewStoryPage() {
                 </>
               )}
             </div>
+            {formData.thumbnailUrl && (
+  <div className="mt-4 flex justify-center">
+    <img
+      src={formData.thumbnailUrl}
+      alt="Thumbnail Preview"
+      className="w-48 h-48 object-cover rounded-xl border"
+    />
+  </div>
+)}
+
           </div>
 
           {/* Story Details */}
