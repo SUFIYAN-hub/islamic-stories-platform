@@ -135,6 +135,7 @@ export const adminAPI = {
   createCategory: (data) => api.post("/admin/categories", data),
   updateCategory: (id, data) => api.put(`/admin/categories/${id}`, data),
   deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
+  getStory: (id) => api.get(`/admin/stories/${id}`),
 };
 
 export default api;

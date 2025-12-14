@@ -1,12 +1,19 @@
 // frontend/src/app/admin/stories/new/page.js
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import toast from 'react-hot-toast';
-import { Upload, Music, Image as ImageIcon, Loader2, ArrowLeft, X } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import toast from "react-hot-toast";
+import {
+  Upload,
+  Music,
+  Image as ImageIcon,
+  Loader2,
+  ArrowLeft,
+  X,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function NewStoryPage() {
   const router = useRouter();
@@ -14,22 +21,22 @@ export default function NewStoryPage() {
   const [loading, setLoading] = useState(false);
   const [audioUploading, setAudioUploading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
-    title: '',
-    titleArabic: '',
-    description: '',
-    category: '',
-    audioUrl: '',
-    thumbnailUrl: '',
+    title: "",
+    titleArabic: "",
+    description: "",
+    category: "",
+    audioUrl: "",
+    thumbnailUrl: "",
     duration: 0,
-    language: 'hindi',
-    narrator: '',
-    source: '',
-    ageGroup: 'all',
-    tags: '',
+    language: "hindi",
+    narrator: "",
+    source: "",
+    ageGroup: "all",
+    tags: "",
     isFeatured: false,
-    isActive: true
+    isActive: true,
   });
 
   const [audioFile, setAudioFile] = useState(null);
@@ -38,9 +45,9 @@ export default function NewStoryPage() {
   const [imageDragActive, setImageDragActive] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.push('/admin/login');
+      router.push("/admin/login");
       return;
     }
     fetchCategories(token);
@@ -54,7 +61,7 @@ export default function NewStoryPage() {
       );
       setCategories(res.data.data);
     } catch (error) {
-      toast.error('Failed to fetch categories');
+      toast.error("Failed to fetch categories");
     }
   };
 
@@ -62,7 +69,7 @@ export default function NewStoryPage() {
     const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     });
   };
 
@@ -70,12 +77,12 @@ export default function NewStoryPage() {
   const handleAudioDrop = (e) => {
     e.preventDefault();
     setAudioDragActive(false);
-    
+
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('audio/')) {
+    if (file && file.type.startsWith("audio/")) {
       handleAudioUpload(file);
     } else {
-      toast.error('Please upload an audio file');
+      toast.error("Please upload an audio file");
     }
   };
 
@@ -91,35 +98,35 @@ export default function NewStoryPage() {
     setAudioUploading(true);
 
     const formDataUpload = new FormData();
-    formDataUpload.append('audio', file);
+    formDataUpload.append("audio", file);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/admin/upload/audio`,
         formDataUpload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
       // Get audio duration
       const audio = new Audio();
       audio.src = URL.createObjectURL(file);
-      audio.addEventListener('loadedmetadata', () => {
-        setFormData(prev => ({
+      audio.addEventListener("loadedmetadata", () => {
+        setFormData((prev) => ({
           ...prev,
           audioUrl: res.data.data.url,
-          duration: Math.round(audio.duration)
+          duration: Math.round(audio.duration),
         }));
       });
 
-      toast.success('Audio uploaded successfully!');
+      toast.success("Audio uploaded successfully!");
     } catch (error) {
-      toast.error('Failed to upload audio');
+      toast.error("Failed to upload audio");
       setAudioFile(null);
     } finally {
       setAudioUploading(false);
@@ -130,12 +137,12 @@ export default function NewStoryPage() {
   const handleImageDrop = (e) => {
     e.preventDefault();
     setImageDragActive(false);
-    
+
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && file.type.startsWith("image/")) {
       handleImageUpload(file);
     } else {
-      toast.error('Please upload an image file');
+      toast.error("Please upload an image file");
     }
   };
 
@@ -151,29 +158,29 @@ export default function NewStoryPage() {
     setImageUploading(true);
 
     const formDataUpload = new FormData();
-    formDataUpload.append('thumbnail', file);
+    formDataUpload.append("thumbnail", file);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/admin/upload/thumbnail`,
         formDataUpload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        thumbnailUrl: res.data.data.url
+        thumbnailUrl: res.data.data.url,
       }));
 
-      toast.success('Thumbnail uploaded successfully!');
+      toast.success("Thumbnail uploaded successfully!");
     } catch (error) {
-      toast.error('Failed to upload thumbnail');
+      toast.error("Failed to upload thumbnail");
       setImageFile(null);
     } finally {
       setImageUploading(false);
@@ -184,24 +191,24 @@ export default function NewStoryPage() {
     e.preventDefault();
 
     if (!formData.audioUrl) {
-      toast.error('Please upload an audio file');
+      toast.error("Please upload an audio file");
       return;
     }
 
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       // Convert tags string to array
       const tagsArray = formData.tags
-        .split(',')
-        .map(tag => tag.trim())
-        .filter(tag => tag);
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag);
 
       const submitData = {
         ...formData,
-        tags: tagsArray
+        tags: tagsArray,
       };
 
       await axios.post(
@@ -210,10 +217,10 @@ export default function NewStoryPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      toast.success('Story created successfully!');
-      router.push('/admin/stories');
+      toast.success("Story created successfully!");
+      router.push("/admin/stories");
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to create story');
+      toast.error(error.response?.data?.message || "Failed to create story");
     } finally {
       setLoading(false);
     }
@@ -232,8 +239,12 @@ export default function NewStoryPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Add New Story</h1>
-              <p className="text-sm text-gray-500">Upload audio and fill in story details</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Add New Story
+              </h1>
+              <p className="text-sm text-gray-500">
+                Upload audio and fill in story details
+              </p>
             </div>
           </div>
         </div>
@@ -243,16 +254,21 @@ export default function NewStoryPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Audio Upload */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Audio File *</h2>
-            
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Audio File *
+            </h2>
+
             <div
               onDrop={handleAudioDrop}
-              onDragOver={(e) => { e.preventDefault(); setAudioDragActive(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setAudioDragActive(true);
+              }}
               onDragLeave={() => setAudioDragActive(false)}
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                audioDragActive 
-                  ? 'border-emerald-500 bg-emerald-50' 
-                  : 'border-gray-300 hover:border-gray-400'
+                audioDragActive
+                  ? "border-emerald-500 bg-emerald-50"
+                  : "border-gray-300 hover:border-gray-400"
               }`}
             >
               {audioUploading ? (
@@ -266,16 +282,23 @@ export default function NewStoryPage() {
                     <Music className="w-8 h-8 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{audioFile.name}</p>
+                    <p className="font-medium text-gray-900">
+                      {audioFile.name}
+                    </p>
                     <p className="text-sm text-gray-500">
-                      {(audioFile.size / 1024 / 1024).toFixed(2)} MB • {formData.duration}s
+                      {(audioFile.size / 1024 / 1024).toFixed(2)} MB •{" "}
+                      {formData.duration}s
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
                       setAudioFile(null);
-                      setFormData(prev => ({ ...prev, audioUrl: '', duration: 0 }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        audioUrl: "",
+                        duration: 0,
+                      }));
                     }}
                     className="text-sm text-red-600 hover:text-red-700"
                   >
@@ -312,16 +335,21 @@ export default function NewStoryPage() {
 
           {/* Thumbnail Upload */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Thumbnail (Optional)</h2>
-            
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Thumbnail (Optional)
+            </h2>
+
             <div
               onDrop={handleImageDrop}
-              onDragOver={(e) => { e.preventDefault(); setImageDragActive(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setImageDragActive(true);
+              }}
               onDragLeave={() => setImageDragActive(false)}
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-                imageDragActive 
-                  ? 'border-purple-500 bg-purple-50' 
-                  : 'border-gray-300 hover:border-gray-400'
+                imageDragActive
+                  ? "border-purple-500 bg-purple-50"
+                  : "border-gray-300 hover:border-gray-400"
               }`}
             >
               {imageUploading ? (
@@ -341,7 +369,7 @@ export default function NewStoryPage() {
                     type="button"
                     onClick={() => {
                       setImageFile(null);
-                      setFormData(prev => ({ ...prev, thumbnailUrl: '' }));
+                      setFormData((prev) => ({ ...prev, thumbnailUrl: "" }));
                     }}
                     className="text-sm text-red-600 hover:text-red-700"
                   >
@@ -375,21 +403,22 @@ export default function NewStoryPage() {
               )}
             </div>
             {formData.thumbnailUrl && (
-  <div className="mt-4 flex justify-center">
-    <img
-      src={formData.thumbnailUrl}
-      alt="Thumbnail Preview"
-      className="w-48 h-48 object-cover rounded-xl border"
-    />
-  </div>
-)}
-
+              <div className="mt-4 flex justify-center">
+                <img
+                  src={formData.thumbnailUrl}
+                  alt="Thumbnail Preview"
+                  className="w-48 h-48 object-cover rounded-xl border"
+                />
+              </div>
+            )}
           </div>
 
           {/* Story Details */}
           <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Story Details</h2>
-            
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Story Details
+            </h2>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Title */}
               <div className="md:col-span-2">
@@ -452,7 +481,7 @@ export default function NewStoryPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
                 >
                   <option value="">Select Category</option>
-                  {categories.map(cat => (
+                  {categories.map((cat) => (
                     <option key={cat._id} value={cat._id}>
                       {cat.icon} {cat.name}
                     </option>
@@ -563,7 +592,9 @@ export default function NewStoryPage() {
                     onChange={handleChange}
                     className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
                   />
-                  <span className="text-sm text-gray-700">Active (visible to users)</span>
+                  <span className="text-sm text-gray-700">
+                    Active (visible to users)
+                  </span>
                 </label>
               </div>
             </div>
@@ -582,7 +613,7 @@ export default function NewStoryPage() {
                   Creating Story...
                 </>
               ) : (
-                'Create Story'
+                "Create Story"
               )}
             </button>
 

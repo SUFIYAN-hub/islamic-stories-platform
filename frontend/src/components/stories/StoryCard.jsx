@@ -11,6 +11,7 @@ export default function StoryCard({ story, variant = 'default' }) {
   const { currentStory, isPlaying, loadStory, togglePlayPause } = useAudioStore();
   const isCurrentStory = currentStory?._id === story._id;
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handlePlay = (e) => {
     e.preventDefault();
@@ -33,6 +34,39 @@ export default function StoryCard({ story, variant = 'default' }) {
     // TODO: Save to backend or localStorage
   };
 
+  // Get proper image URL
+  const getImageUrl = () => {
+    if (imageError) return '/images/default-thumbnail.jpg';
+    return story.thumbnail || story.thumbnailUrl || '/images/default-thumbnail.jpg';
+  };
+
+  // Check if it's a Cloudinary image
+  const isCloudinaryImage = getImageUrl().includes('cloudinary.com');
+
+  // Image Component - Use regular img for Cloudinary, Next Image for others
+  const ThumbnailImage = ({ className }) => {
+    if (isCloudinaryImage) {
+      return (
+        <img
+          src={getImageUrl()}
+          alt={story.title}
+          className={className}
+          onError={() => setImageError(true)}
+        />
+      );
+    }
+    
+    return (
+      <Image
+        src={getImageUrl()}
+        alt={story.title}
+        fill
+        className={className}
+        onError={() => setImageError(true)}
+      />
+    );
+  };
+
   // Compact variant for lists
   if (variant === 'compact') {
     return (
@@ -44,12 +78,7 @@ export default function StoryCard({ story, variant = 'default' }) {
       >
         {/* Thumbnail */}
         <div className="relative aspect-square overflow-hidden">
-          <Image
-            src={story.thumbnailUrl || '/images/default-thumbnail.jpg'}
-            alt={story.title}
-            fill
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
-          />
+          <ThumbnailImage className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
           
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -150,12 +179,7 @@ export default function StoryCard({ story, variant = 'default' }) {
     >
       {/* Thumbnail */}
       <div className="relative aspect-[4/3] overflow-hidden">
-        <Image
-          src={story.thumbnailUrl || '/images/default-thumbnail.jpg'}
-          alt={story.title}
-          fill
-          className="object-cover group-hover:scale-110 transition-transform duration-700"
-        />
+        <ThumbnailImage className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
         
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
