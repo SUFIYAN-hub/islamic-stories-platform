@@ -35,10 +35,11 @@ export default function StoryCard({ story, variant = 'default' }) {
   };
 
   // Get proper image URL
-  const getImageUrl = () => {
-    if (imageError) return '/images/default-thumbnail.jpg';
-    return story.thumbnail || story.thumbnailUrl || '/images/default-thumbnail.jpg';
-  };
+  // In StoryCard.jsx, update getImageUrl function:
+const getImageUrl = () => {
+  if (imageError) return 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
+  return story.thumbnail || story.thumbnailUrl || 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
+};
 
   // Check if it's a Cloudinary image
   const isCloudinaryImage = getImageUrl().includes('cloudinary.com');

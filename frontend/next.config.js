@@ -5,15 +5,9 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'islamic-stories-platform.onrender.com',
-        pathname: '/**',
       },
     ],
-    unoptimized: false, // Keep optimization on
+    unoptimized: true, // Disable Next.js image optimization
   },
 };
 
