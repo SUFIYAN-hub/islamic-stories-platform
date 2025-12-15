@@ -152,6 +152,13 @@ router.post('/stories', async (req, res) => {
       isFeatured
     } = req.body;
 
+    // DEBUG: Log what we're receiving
+    console.log('===== CREATE STORY DEBUG =====');
+    console.log('Received thumbnail:', thumbnail);
+    console.log('Thumbnail type:', typeof thumbnail);
+    console.log('Thumbnail length:', thumbnail?.length);
+    console.log('==============================');
+
     // Validate required fields
     if (!title) {
       return res.status(400).json({
@@ -182,13 +189,23 @@ router.post('/stories', async (req, res) => {
       '-' +
       Date.now();
 
+    // Fix thumbnail - reject bad placeholder
+    let finalThumbnail = thumbnail;
+    if (!thumbnail || 
+        thumbnail === '' || 
+        thumbnail.includes('res.cloudinary.com/demo/')) {
+      finalThumbnail = null;
+    }
+
+    console.log('Final thumbnail to save:', finalThumbnail);
+
     // Create story
     const story = await Story.create({
       title,
       titleArabic,
       description,
       audioUrl,
-      thumbnail: thumbnail || null,
+      thumbnail: finalThumbnail,
       category,
       narrator,
       ageGroup,
