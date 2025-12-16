@@ -1,9 +1,9 @@
+'use client';
+
 export const metadata = {
   title: 'Contact Us - Islamic Stories',
   description: 'Get in touch with us for questions, suggestions, or feedback',
 };
-
-'use client';
 
 import { useState } from 'react';
 import { Mail, MessageSquare, Send, Loader2 } from 'lucide-react';
