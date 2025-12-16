@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -5,10 +6,15 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
+        pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        pathname: '/**',
+      }
     ],
-    unoptimized: true, // Disable Next.js image optimization
   },
-};
+}
 
 module.exports = nextConfig;

@@ -36,12 +36,20 @@ router.post('/upload/audio', uploadAudio.single('audio'), async (req, res) => {
       });
     }
 
+    console.log('===== AUDIO UPLOAD SUCCESS =====');
+    console.log('Cloudinary URL:', req.file.path);
+    console.log('================================');
+
+    // CRITICAL FIX: Ensure HTTPS URL
+    const secureUrl = req.file.path.replace('http://', 'https://');
+
     res.json({ 
       success: true, 
       data: {
         filename: req.file.filename,
-        url: req.file.path, // Cloudinary URL
-        size: req.file.size
+        url: secureUrl, // Send secure HTTPS URL
+        size: req.file.size,
+        format: req.file.format
       }
     });
   } catch (error) {
@@ -63,12 +71,21 @@ router.post('/upload/thumbnail', uploadImage.single('thumbnail'), async (req, re
       });
     }
 
+    console.log('===== THUMBNAIL UPLOAD SUCCESS =====');
+    console.log('Cloudinary URL:', req.file.path);
+    console.log('Secure URL:', req.file.path.replace('http://', 'https://'));
+    console.log('===================================');
+
+    // CRITICAL FIX: Ensure HTTPS URL
+    const secureUrl = req.file.path.replace('http://', 'https://');
+
     res.json({ 
       success: true, 
       data: {
         filename: req.file.filename,
-        url: req.file.path, // Cloudinary URL
-        size: req.file.size
+        url: secureUrl, // Send secure HTTPS URL
+        size: req.file.size,
+        format: req.file.format
       }
     });
   } catch (error) {
@@ -143,20 +160,20 @@ router.post('/stories', async (req, res) => {
       titleArabic,
       description,
       audioUrl,
-      thumbnail,
+      thumbnailUrl, // Changed from 'thumbnail' to 'thumbnailUrl'
       category,
       narrator,
       ageGroup,
       duration,
       language,
-      isFeatured
+      isFeatured,
+      tags
     } = req.body;
 
     // DEBUG: Log what we're receiving
     console.log('===== CREATE STORY DEBUG =====');
-    console.log('Received thumbnail:', thumbnail);
-    console.log('Thumbnail type:', typeof thumbnail);
-    console.log('Thumbnail length:', thumbnail?.length);
+    console.log('Received thumbnailUrl:', thumbnailUrl);
+    console.log('AudioUrl:', audioUrl);
     console.log('==============================');
 
     // Validate required fields
@@ -189,29 +206,36 @@ router.post('/stories', async (req, res) => {
       '-' +
       Date.now();
 
-    // Fix thumbnail - reject bad placeholder
-    let finalThumbnail = thumbnail;
-    if (!thumbnail || 
-        thumbnail === '' || 
-        thumbnail.includes('res.cloudinary.com/demo/')) {
-      finalThumbnail = null;
+    // FIX: Properly handle thumbnail URL
+    let finalThumbnail = null;
+    
+    if (thumbnailUrl && 
+        thumbnailUrl.trim() !== '' && 
+        thumbnailUrl.includes('cloudinary.com') &&
+        !thumbnailUrl.includes('res.cloudinary.com/demo/')) {
+      // Valid Cloudinary URL - ensure it's HTTPS
+      finalThumbnail = thumbnailUrl.replace('http://', 'https://');
     }
 
     console.log('Final thumbnail to save:', finalThumbnail);
 
+    // Ensure audio URL is also HTTPS
+    const secureAudioUrl = audioUrl.replace('http://', 'https://');
+
     // Create story
     const story = await Story.create({
       title,
-      titleArabic,
+      titleArabic: titleArabic || '',
       description,
-      audioUrl,
+      audioUrl: secureAudioUrl,
       thumbnail: finalThumbnail,
       category,
-      narrator,
-      ageGroup,
+      narrator: narrator || '',
+      ageGroup: ageGroup || 'all',
       duration: parseInt(duration) || 0,
       language: language || 'hindi',
       isFeatured: isFeatured || false,
+      tags: Array.isArray(tags) ? tags : [],
       slug
     });
 
@@ -220,9 +244,14 @@ router.post('/stories', async (req, res) => {
       $inc: { storyCount: 1 }
     });
 
+    const populatedStory = await Story.findById(story._id)
+      .populate('category', 'name nameArabic slug icon color');
+
+    console.log('Story created successfully with thumbnail:', populatedStory.thumbnail);
+
     res.status(201).json({
       success: true,
-      data: story
+      data: populatedStory
     });
   } catch (error) {
     console.error('Create story error:', error);
@@ -232,6 +261,7 @@ router.post('/stories', async (req, res) => {
     });
   }
 });
+
 
 // PUT - Update story
 router.put('/stories/:id', async (req, res) => {

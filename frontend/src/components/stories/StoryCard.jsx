@@ -1,4 +1,5 @@
 // frontend/src/components/stories/StoryCard.jsx
+
 'use client';
 
 import Image from 'next/image';
@@ -31,39 +32,56 @@ export default function StoryCard({ story, variant = 'default' }) {
     e.preventDefault();
     e.stopPropagation();
     setIsBookmarked(!isBookmarked);
-    // TODO: Save to backend or localStorage
   };
 
-  // Get proper image URL
-  // In StoryCard.jsx, update getImageUrl function:
-const getImageUrl = () => {
-  if (imageError) return 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
-  return story.thumbnail || story.thumbnailUrl || 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
-};
+  // FIXED: Better image URL handling for Cloudinary
+  const getImageUrl = () => {
+    // If image already failed, show placeholder
+    if (imageError) {
+      return 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
+    }
 
-  // Check if it's a Cloudinary image
-  const isCloudinaryImage = getImageUrl().includes('cloudinary.com');
+    // Get thumbnail from story
+    const thumbnail = story.thumbnail || story.thumbnailUrl;
 
-  // Image Component - Use regular img for Cloudinary, Next Image for others
+    // If no thumbnail or it's the demo placeholder, use our placeholder
+    if (!thumbnail || 
+        thumbnail === '' || 
+        thumbnail === 'null' ||
+        thumbnail.includes('res.cloudinary.com/demo/')) {
+      return 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
+    }
+
+    // Ensure HTTPS for Cloudinary URLs
+    if (thumbnail.includes('cloudinary.com')) {
+      return thumbnail.replace('http://', 'https://');
+    }
+
+    // Return as is for other URLs
+    return thumbnail;
+  };
+
+  // Image Component - Always use regular img tag for better compatibility
   const ThumbnailImage = ({ className }) => {
-    if (isCloudinaryImage) {
-      return (
-        <img
-          src={getImageUrl()}
-          alt={story.title}
-          className={className}
-          onError={() => setImageError(true)}
-        />
-      );
+    const imageUrl = getImageUrl();
+    
+    // Debug: Log image URL in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Story:', story.title, 'Image URL:', imageUrl);
     }
     
     return (
-      <Image
-        src={getImageUrl()}
-        alt={story.title}
-        fill
+      <img
+        src={imageUrl}
+        alt={story.title || 'Islamic Story'}
         className={className}
-        onError={() => setImageError(true)}
+        onError={(e) => {
+          console.error('Image failed to load:', imageUrl);
+          setImageError(true);
+          e.target.src = 'https://placehold.co/400x400/10b981/white?text=Islamic+Stories';
+        }}
+        loading="lazy"
+        crossOrigin="anonymous"
       />
     );
   };
