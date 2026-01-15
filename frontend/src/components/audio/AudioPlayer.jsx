@@ -1,4 +1,4 @@
-// frontend/src/components/audio/AudioPlayer.jsx
+// frontend/src/components/audio/AudioPlayer.jsx - FIXED VERSION
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -45,13 +45,29 @@ export default function AudioPlayer() {
   const [showVolume, setShowVolume] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(0);
 
+  // CRITICAL FIX: Lock body scroll when expanded
+  useEffect(() => {
+    if (isExpanded) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [isExpanded]);
+
   // Sync progress to backend every 30 seconds
   useEffect(() => {
     if (!isAuthenticated || !currentStory) return;
 
     const syncProgress = async () => {
       const now = Date.now();
-      // Only sync every 30 seconds to avoid too many requests
       if (now - lastSyncTime < 30000) return;
 
       try {
@@ -239,175 +255,193 @@ export default function AudioPlayer() {
     );
   }
 
-  // Expanded Player
+  // EXPANDED PLAYER - COMPLETELY FIXED
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
-      <div className="glass-strong rounded-3xl p-8 max-w-2xl w-full shadow-glass-lg animate-scale-in">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-              Now Playing
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {isAuthenticated && (
-              <>
-                <FavoriteButton storyId={currentStory._id} size="md" />
-                <AddToPlaylistButton storyId={currentStory._id} size="md" />
-              </>
-            )}
-            <button className="w-9 h-9 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all">
-              <Share2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setIsExpanded(false)}
-              className="w-9 h-9 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Album Art */}
-        <div className="relative w-full aspect-square max-w-md mx-auto mb-8 rounded-3xl overflow-hidden shadow-2xl">
-          <Image
-            src={currentStory.thumbnail || '/images/default-thumbnail.jpg'}
-            alt={currentStory.title}
-            fill
-            className="object-cover"
-          />
-          {isPlaying && (
-            <div className="absolute inset-0 bg-gradient-primary/20 flex items-center justify-center">
-              <div className="audio-wave scale-150">
-                <span className="bg-white"></span>
-                <span className="bg-white"></span>
-                <span className="bg-white"></span>
-                <span className="bg-white"></span>
-              </div>
+    <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md animate-fade-in">
+      {/* FIXED: Use flex column with proper centering and overflow */}
+      <div className="h-full w-full flex flex-col items-center justify-center p-4 overflow-y-auto">
+        
+        {/* Centered Content Container */}
+        <div className="glass-strong rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-glass-lg animate-scale-in my-auto">
+          
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Now Playing
+              </span>
             </div>
-          )}
-        </div>
+            <div className="flex items-center gap-2">
+              {isAuthenticated && (
+                <>
+                  <FavoriteButton storyId={currentStory._id} size="md" />
+                  <AddToPlaylistButton storyId={currentStory._id} size="md" />
+                </>
+              )}
+              <button 
+                className="w-9 h-9 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
+                title="Share"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="w-9 h-9 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
+                title="Minimize"
+              >
+                <Minimize2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
-        {/* Story Info */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            {currentStory.title}
-          </h2>
-          {currentStory.titleArabic && (
-            <p className="text-lg text-gray-600 dark:text-gray-400 font-arabic mb-2" dir="rtl">
-              {currentStory.titleArabic}
-            </p>
-          )}
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span>{currentStory.category?.icon}</span>
-            <span>{currentStory.category?.name}</span>
-            {currentStory.narrator && (
-              <>
-                <span>•</span>
-                <span>{currentStory.narrator}</span>
-              </>
+          {/* Album Art - FIXED: Constrained size */}
+          <div className="relative w-full aspect-square max-w-sm mx-auto mb-6 sm:mb-8 rounded-3xl overflow-hidden shadow-2xl">
+            <Image
+              src={currentStory.thumbnail || '/images/default-thumbnail.jpg'}
+              alt={currentStory.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 448px"
+              className="object-cover"
+              priority
+            />
+            {isPlaying && (
+              <div className="absolute inset-0 bg-gradient-primary/20 flex items-center justify-center">
+                <div className="audio-wave scale-150">
+                  <span className="bg-white"></span>
+                  <span className="bg-white"></span>
+                  <span className="bg-white"></span>
+                  <span className="bg-white"></span>
+                </div>
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="mb-6">
-          <div 
-            className="relative h-2 bg-gray-200 dark:bg-dark-700 rounded-full cursor-pointer group mb-2"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const percentage = x / rect.width;
-              seek(percentage * duration);
-            }}
-          >
-            <div 
-              className="absolute top-0 left-0 h-full bg-gradient-primary rounded-full transition-all duration-100"
-              style={{ width: `${progress}%` }}
-            />
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-opacity"
-              style={{ left: `${progress}%`, transform: 'translate(-50%, -50%)' }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-sm font-mono text-gray-600 dark:text-gray-400">
-            <span>{formatDuration(currentTime)}</span>
-            <span>{formatDuration(duration)}</span>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <button
-            onClick={() => skip(-15)}
-            className="w-12 h-12 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
-          >
-            <SkipBack className="w-5 h-5" />
-          </button>
-
-          <button
-            onClick={togglePlayPause}
-            disabled={isLoading}
-            className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-premium disabled:opacity-50"
-          >
-            {isLoading ? (
-              <Loader2 className="w-7 h-7 animate-spin text-white" />
-            ) : isPlaying ? (
-              <Pause className="w-7 h-7 text-white" fill="white" />
-            ) : (
-              <Play className="w-7 h-7 text-white ml-1" fill="white" />
+          {/* Story Info */}
+          <div className="text-center mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">
+              {currentStory.title}
+            </h2>
+            {currentStory.titleArabic && (
+              <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 font-arabic mb-2 line-clamp-1" dir="rtl">
+                {currentStory.titleArabic}
+              </p>
             )}
-          </button>
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+              <span>{currentStory.category?.icon}</span>
+              <span>{currentStory.category?.name}</span>
+              {currentStory.narrator && (
+                <>
+                  <span>•</span>
+                  <span>{currentStory.narrator}</span>
+                </>
+              )}
+            </div>
+          </div>
 
-          <button
-            onClick={() => skip(15)}
-            className="w-12 h-12 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
-          >
-            <SkipForward className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Additional Controls */}
-        <div className="flex items-center justify-between">
-          {/* Volume */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowVolume(!showVolume)}
-              className="w-9 h-9 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
+          {/* Progress Bar */}
+          <div className="mb-6">
+            <div 
+              className="relative h-2 bg-gray-200 dark:bg-dark-700 rounded-full cursor-pointer group mb-2"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percentage = x / rect.width;
+                seek(percentage * duration);
+              }}
             >
-              {volume === 0 ? (
-                <VolumeX className="w-4 h-4" />
+              <div 
+                className="absolute top-0 left-0 h-full bg-gradient-primary rounded-full transition-all duration-100"
+                style={{ width: `${progress}%` }}
+              />
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-opacity"
+                style={{ left: `${progress}%`, transform: 'translate(-50%, -50%)' }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-xs sm:text-sm font-mono text-gray-600 dark:text-gray-400">
+              <span>{formatDuration(currentTime)}</span>
+              <span>{formatDuration(duration)}</span>
+            </div>
+          </div>
+
+          {/* Main Controls */}
+          <div className="flex items-center justify-center gap-3 sm:gap-4 mb-6">
+            <button
+              onClick={() => skip(-15)}
+              className="w-11 h-11 sm:w-12 sm:h-12 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
+              title="15s back"
+            >
+              <SkipBack className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            <button
+              onClick={togglePlayPause}
+              disabled={isLoading}
+              className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-primary rounded-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-premium disabled:opacity-50"
+              title={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isLoading ? (
+                <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 animate-spin text-white" />
+              ) : isPlaying ? (
+                <Pause className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="white" />
               ) : (
-                <Volume2 className="w-4 h-4" />
+                <Play className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-1" fill="white" />
               )}
             </button>
-            {showVolume && (
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-                className="w-24 h-2 bg-gray-200 dark:bg-dark-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer"
-              />
-            )}
+
+            <button
+              onClick={() => skip(15)}
+              className="w-11 h-11 sm:w-12 sm:h-12 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
+              title="15s forward"
+            >
+              <SkipForward className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           </div>
 
-          {/* Playback Speed */}
-          <select
-            value={playbackRate}
-            onChange={(e) => setPlaybackRate(Number(e.target.value))}
-            className="glass-light px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer hover:glass-strong transition-all outline-none"
-          >
-            <option value={0.75}>0.75x</option>
-            <option value={1}>1x</option>
-            <option value={1.25}>1.25x</option>
-            <option value={1.5}>1.5x</option>
-            <option value={2}>2x</option>
-          </select>
+          {/* Additional Controls */}
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Volume Control */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowVolume(!showVolume)}
+                className="w-9 h-9 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all"
+                title="Volume"
+              >
+                {volume === 0 ? (
+                  <VolumeX className="w-4 h-4" />
+                ) : (
+                  <Volume2 className="w-4 h-4" />
+                )}
+              </button>
+              {showVolume && (
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  className="w-20 sm:w-24 h-2 bg-gray-200 dark:bg-dark-700 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-primary-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer"
+                />
+              )}
+            </div>
+
+            {/* Playback Speed */}
+            <select
+              value={playbackRate}
+              onChange={(e) => setPlaybackRate(Number(e.target.value))}
+              className="glass-light px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer hover:glass-strong transition-all outline-none"
+              title="Playback Speed"
+            >
+              <option value={0.75}>0.75x</option>
+              <option value={1}>1x</option>
+              <option value={1.25}>1.25x</option>
+              <option value={1.5}>1.5x</option>
+              <option value={2}>2x</option>
+            </select>
+          </div>
+
         </div>
       </div>
     </div>

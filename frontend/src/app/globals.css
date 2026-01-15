@@ -305,3 +305,46 @@
 .dark * {
   @apply transition-colors duration-300;
 }
+
+/* Prevent iOS bounce/overscroll */
+html, body {
+  overscroll-behavior: none;
+}
+
+/* Smooth scrolling for player */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for Safari/iOS fullscreen */
+@supports (-webkit-touch-callout: none) {
+  .fixed.inset-0 {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Better audio wave animation */
+.audio-wave span {
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.audio-wave span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.audio-wave span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.audio-wave span:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+@keyframes wave {
+  0%, 100% {
+    height: 8px;
+  }
+  50% {
+    height: 20px;
+  }
+}
