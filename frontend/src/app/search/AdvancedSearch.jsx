@@ -16,7 +16,6 @@ export default function AdvancedSearch({ onClose }) {
   const inputRef = useRef(null);
   const searchTimeoutRef = useRef(null);
 
-  // Trending searches (you can fetch from API later)
   const trendingSearches = [
     'Prophets Stories',
     'Sahaba Stories', 
@@ -25,7 +24,7 @@ export default function AdvancedSearch({ onClose }) {
     'Islamic History'
   ];
 
-  // Load recent searches from localStorage
+  // Load recent searches
   useEffect(() => {
     const saved = localStorage.getItem('recentSearches');
     if (saved) {
@@ -37,18 +36,33 @@ export default function AdvancedSearch({ onClose }) {
     }
   }, []);
 
-  // Auto-focus input when component mounts
+  // Auto-focus input
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Lock body scroll when overlay is open
+  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
     };
   }, []);
+
+  // FIX: ESC key to close
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
 
   // Search with debounce
   useEffect(() => {
@@ -57,12 +71,10 @@ export default function AdvancedSearch({ onClose }) {
       return;
     }
 
-    // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Set new timeout for search
     searchTimeoutRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
@@ -77,7 +89,7 @@ export default function AdvancedSearch({ onClose }) {
       } finally {
         setIsLoading(false);
       }
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -86,25 +98,33 @@ export default function AdvancedSearch({ onClose }) {
     };
   }, [query]);
 
-  // Save search to recent
   const saveRecentSearch = (searchTerm) => {
     const updated = [
       searchTerm,
       ...recentSearches.filter(s => s !== searchTerm)
-    ].slice(0, 5); // Keep only last 5
+    ].slice(0, 5);
     
     setRecentSearches(updated);
     localStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
-  // Handle clicking on a search result
+  // FIX: Better navigation with fallback
   const handleResultClick = (story) => {
     saveRecentSearch(story.title);
-    router.push(`/stories/${story.slug}`);
+    
+    // DEBUG: Log to see what we have
+    console.log('Story data:', story);
+    console.log('Story slug:', story.slug);
+    console.log('Story _id:', story._id);
+    
+    // Try slug first, fallback to _id
+    const urlPath = story.slug ? `/stories/${story.slug}` : `/stories/${story._id}`;
+    
+    console.log('Navigating to:', urlPath);
+    router.push(urlPath);
     onClose();
   };
 
-  // Handle search submit
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (!query.trim()) return;
@@ -114,7 +134,6 @@ export default function AdvancedSearch({ onClose }) {
     onClose();
   };
 
-  // Clear recent searches
   const clearRecentSearches = () => {
     setRecentSearches([]);
     localStorage.removeItem('recentSearches');
@@ -146,7 +165,6 @@ export default function AdvancedSearch({ onClose }) {
                   className="w-full pl-12 pr-12 py-4 bg-white/50 dark:bg-dark-800/50 border-2 border-transparent focus:border-primary-500 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 outline-none transition-all text-lg"
                 />
                 
-                {/* Clear/Close buttons */}
                 {query ? (
                   <button
                     type="button"
@@ -167,7 +185,6 @@ export default function AdvancedSearch({ onClose }) {
               </div>
             </form>
             
-            {/* Quick tip */}
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               Press <kbd className="px-2 py-1 bg-white/50 dark:bg-dark-700/50 rounded text-xs font-mono">ESC</kbd> to close
             </p>
@@ -176,7 +193,6 @@ export default function AdvancedSearch({ onClose }) {
           {/* Results Area */}
           <div className="max-h-[60vh] overflow-y-auto scrollbar-premium p-6">
             
-            {/* Show results if searching */}
             {query.trim().length >= 2 ? (
               <>
                 {isLoading ? (
@@ -195,7 +211,6 @@ export default function AdvancedSearch({ onClose }) {
                         onClick={() => handleResultClick(story)}
                         className="w-full flex items-center gap-4 p-3 rounded-2xl hover:bg-white/50 dark:hover:bg-dark-700/50 transition-all group text-left"
                       >
-                        {/* Thumbnail */}
                         <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
                           <Image
                             src={story.thumbnail || '/images/default-thumbnail.jpg'}
@@ -205,7 +220,6 @@ export default function AdvancedSearch({ onClose }) {
                           />
                         </div>
 
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-primary-600 transition-colors">
                             {story.title}
@@ -220,7 +234,6 @@ export default function AdvancedSearch({ onClose }) {
                           </div>
                         </div>
 
-                        {/* Play count */}
                         {story.playCount > 0 && (
                           <div className="text-xs text-gray-400 flex items-center gap-1">
                             <TrendingUp className="w-3 h-3" />
@@ -245,10 +258,8 @@ export default function AdvancedSearch({ onClose }) {
                 )}
               </>
             ) : (
-              // Show suggestions when not searching
               <div className="space-y-6">
                 
-                {/* Recent Searches */}
                 {recentSearches.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
@@ -277,7 +288,6 @@ export default function AdvancedSearch({ onClose }) {
                   </div>
                 )}
 
-                {/* Trending Searches */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" />
