@@ -1,4 +1,3 @@
-// frontend/src/app/history/page.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,7 @@ import {
   Loader2,
   CheckCircle,
   PlayCircle,
-  Filter
+  AlertCircle
 } from 'lucide-react';
 import { formatTimeAgo } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -21,7 +20,7 @@ export default function HistoryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]);
-  const [filter, setFilter] = useState('all'); // 'all', 'completed', 'incomplete'
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -43,9 +42,21 @@ export default function HistoryPage() {
       if (filter === 'incomplete') params.completed = 'false';
       
       const response = await userAPI.getHistory(params);
-      setHistory(response.data.data);
+      
+      // FIX: Filter out items with null/undefined stories
+      const validHistory = (response.data.data || []).filter(item => item.story && item.story._id);
+      setHistory(validHistory);
+      
+      // Show warning if some stories were filtered
+      const totalItems = response.data.data?.length || 0;
+      const filteredCount = totalItems - validHistory.length;
+      if (filteredCount > 0) {
+        console.warn(`${filteredCount} history items had missing stories`);
+      }
     } catch (error) {
+      console.error('Failed to load history:', error);
       toast.error('Failed to load history');
+      setHistory([]);
     } finally {
       setLoading(false);
     }
@@ -149,74 +160,88 @@ export default function HistoryPage() {
         ) : (
           // History List
           <div className="space-y-4">
-            {history.map((item, index) => (
-              <div
-                key={`${item.story?._id}-${index}`}
-                className="card-premium flex flex-col md:flex-row gap-4 animate-fade-in-up hover-lift"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                {/* Story Card */}
-                <div className="flex-1">
-                  <StoryCard story={item.story} variant="compact" />
-                </div>
+            {history.map((item, index) => {
+              // Double-check story exists (extra safety)
+              if (!item.story || !item.story._id) {
+                return null;
+              }
 
-                {/* History Info */}
-                <div className="md:w-64 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    {/* Last Played */}
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatTimeAgo(item.lastPlayedAt)}</span>
-                    </div>
-
-                    {/* Play Count */}
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <PlayCircle className="w-4 h-4" />
-                      <span>Played {item.playCount} {item.playCount === 1 ? 'time' : 'times'}</span>
-                    </div>
-
-                    {/* Completion Status */}
-                    {item.completed ? (
-                      <div className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400 text-sm font-semibold">
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Completed</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                          <span>Progress</span>
-                          <span>
-                            {Math.round((item.lastPosition / item.story?.duration) * 100)}%
-                          </span>
-                        </div>
-                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-primary transition-all"
-                            style={{
-                              width: `${Math.round((item.lastPosition / item.story?.duration) * 100)}%`
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
+              return (
+                <div
+                  key={`${item.story._id}-${index}`}
+                  className="card-premium flex flex-col md:flex-row gap-4 animate-fade-in-up hover-lift"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                >
+                  {/* Story Card */}
+                  <div className="flex-1">
+                    <StoryCard story={item.story} variant="compact" />
                   </div>
 
-                  {/* Resume Button */}
-                  {!item.completed && item.lastPosition > 0 && (
-                    <button
-                      onClick={() => {
-                        // Load story and seek to last position
-                        // This will be handled by your audio store
-                        router.push(`/stories/${item.story?.slug}`);
-                      }}
-                      className="btn-premium text-sm py-2 mt-4"
-                    >
-                      Resume
-                    </button>
-                  )}
+                  {/* History Info */}
+                  <div className="md:w-64 flex flex-col justify-between">
+                    <div className="space-y-2">
+                      {/* Last Played */}
+                      {item.lastPlayedAt && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <Clock className="w-4 h-4" />
+                          <span>{formatTimeAgo(item.lastPlayedAt)}</span>
+                        </div>
+                      )}
+
+                      {/* Play Count */}
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <PlayCircle className="w-4 h-4" />
+                        <span>Played {item.playCount || 0} {item.playCount === 1 ? 'time' : 'times'}</span>
+                      </div>
+
+                      {/* Completion Status */}
+                      {item.completed ? (
+                        <div className="flex items-center gap-2 px-3 py-1 bg-green-50 dark:bg-green-900/20 rounded-full text-green-600 dark:text-green-400 text-sm font-semibold">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Completed</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span>Progress</span>
+                            <span>
+                              {item.story.duration > 0 
+                                ? Math.round(((item.lastPosition || 0) / item.story.duration) * 100)
+                                : 0
+                              }%
+                            </span>
+                          </div>
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-primary transition-all"
+                              style={{
+                                width: `${
+                                  item.story.duration > 0 
+                                    ? Math.round(((item.lastPosition || 0) / item.story.duration) * 100)
+                                    : 0
+                                }%`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Resume Button */}
+                    {!item.completed && (item.lastPosition || 0) > 0 && item.story.slug && (
+                      <button
+                        onClick={() => {
+                          router.push(`/stories/${item.story.slug}`);
+                        }}
+                        className="btn-premium text-sm py-2 mt-4"
+                      >
+                        Resume
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
