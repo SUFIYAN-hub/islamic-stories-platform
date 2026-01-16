@@ -18,7 +18,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import AdvancedSearch from '@/components/search/AdvancedSearch';
+import AdvancedSearch from '@/app/search/AdvancedSearch'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
