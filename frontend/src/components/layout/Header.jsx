@@ -1,16 +1,29 @@
 // frontend/src/components/layout/Header.jsx
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useUser } from '@/context/UserContext';
-import { Menu, X, Search, Home, BookOpen, Heart, User as UserIcon, LogIn, LogOut, Settings, Shield } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useUser } from "@/context/UserContext";
+import {
+  Menu,
+  X,
+  Search,
+  Home,
+  BookOpen,
+  Heart,
+  User as UserIcon,
+  LogIn,
+  LogOut,
+  Settings,
+  Shield,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const { user, isAuthenticated, logout } = useUser();
 
   useEffect(() => {
@@ -18,15 +31,15 @@ export default function Header() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navigation = [
-    { name: 'Home', href: '/', icon: Home },
-    { name: 'Stories', href: '/stories', icon: BookOpen },
-    { name: 'Categories', href: '/categories', icon: BookOpen },
-    { name: 'Favorites', href: '/favorites', icon: Heart, protected: true },
+    { name: "Home", href: "/", icon: Home },
+    { name: "Stories", href: "/stories", icon: BookOpen },
+    { name: "Categories", href: "/categories", icon: BookOpen },
+    { name: "Favorites", href: "/favorites", icon: Heart, protected: true },
   ];
 
   const handleLogout = () => {
@@ -35,15 +48,13 @@ export default function Header() {
   };
 
   // Check if user is admin
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === "admin";
 
   return (
-    <header 
+    <header
       className={cn(
         "sticky top-0 z-50 transition-all duration-400",
-        isScrolled 
-          ? "glass-strong shadow-glass" 
-          : "bg-transparent"
+        isScrolled ? "glass-strong shadow-glass" : "bg-transparent"
       )}
     >
       <div className="container mx-auto px-4">
@@ -60,7 +71,10 @@ export default function Header() {
               <h1 className="font-bold text-xl text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors">
                 Islamic Stories
               </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-arabic" dir="rtl">
+              <p
+                className="text-xs text-gray-500 dark:text-gray-400 font-arabic"
+                dir="rtl"
+              >
                 قصص إسلامية
               </p>
             </div>
@@ -72,7 +86,7 @@ export default function Header() {
               const Icon = item.icon;
               // Skip protected routes if not authenticated
               if (item.protected && !isAuthenticated) return null;
-              
+
               return (
                 <Link
                   key={item.name}
@@ -90,13 +104,20 @@ export default function Header() {
           {/* Actions */}
           <div className="flex items-center gap-2">
             {/* Search Button */}
-            <Link
-              href="/search"
-              className="w-10 h-10 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all duration-300 hover:scale-110"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            </Link>
+            <>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="w-10 h-10 glass-light rounded-xl flex items-center justify-center hover:glass-strong transition-all duration-300 hover:scale-110"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+              </button>
+
+              {/* Search Overlay */}
+              {showSearch && (
+                <AdvancedSearch onClose={() => setShowSearch(false)} />
+              )}
+            </>
 
             {/* User Menu - Desktop */}
             {isAuthenticated ? (
@@ -109,16 +130,14 @@ export default function Header() {
                     {user?.name?.charAt(0).toUpperCase()}
                   </div>
                   <span className="font-medium">{user?.name}</span>
-                  {isAdmin && (
-                    <Shield className="w-4 h-4 text-gold-500" />
-                  )}
+                  {isAdmin && <Shield className="w-4 h-4 text-gold-500" />}
                 </button>
 
                 {/* Dropdown */}
                 {isUserMenuOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40" 
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={() => setIsUserMenuOpen(false)}
                     />
                     <div className="absolute right-0 mt-2 w-64 glass-strong rounded-2xl shadow-glass-lg p-2 animate-fade-in-down z-50">
@@ -148,7 +167,7 @@ export default function Header() {
                             <span>Admin Panel</span>
                           </Link>
                         )}
-                        
+
                         <Link
                           href="/profile"
                           onClick={() => setIsUserMenuOpen(false)}
@@ -250,7 +269,7 @@ export default function Header() {
               {navigation.map((item) => {
                 const Icon = item.icon;
                 if (item.protected && !isAuthenticated) return null;
-                
+
                 return (
                   <Link
                     key={item.name}
@@ -263,7 +282,7 @@ export default function Header() {
                   </Link>
                 );
               })}
-              
+
               {/* Mobile Login/Logout */}
               {isAuthenticated ? (
                 <>
@@ -310,9 +329,7 @@ export default function Header() {
       </div>
 
       {/* Divider */}
-      {isScrolled && (
-        <div className="divider-gradient animate-fade-in" />
-      )}
+      {isScrolled && <div className="divider-gradient animate-fade-in" />}
     </header>
   );
 }
