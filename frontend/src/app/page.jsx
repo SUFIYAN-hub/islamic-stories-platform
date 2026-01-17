@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { storiesAPI, categoriesAPI } from '@/services/api';
 import StoryCard from '@/components/stories/StoryCard';
-import { Sparkles, TrendingUp, Loader2, Play, Headphones, BookOpen, Star } from 'lucide-react';
+import HorizontalScroll from '@/components/common/HorizontalScroll';
+import { Sparkles, TrendingUp, Loader2, Play, Headphones, BookOpen, Star, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -19,7 +20,7 @@ export default function HomePage() {
   const { data: featuredData, isLoading: featuredLoading } = useQuery({
     queryKey: ['stories', 'featured'],
     queryFn: async () => {
-      const response = await storiesAPI.getAll({ featured: true, limit: 6 });
+      const response = await storiesAPI.getAll({ featured: true, limit: 12 });
       return response.data;
     },
   });
@@ -27,7 +28,7 @@ export default function HomePage() {
   const { data: latestData, isLoading: latestLoading } = useQuery({
     queryKey: ['stories', 'latest'],
     queryFn: async () => {
-      const response = await storiesAPI.getAll({ limit: 12 });
+      const response = await storiesAPI.getAll({ limit: 20 });
       return response.data;
     },
   });
@@ -106,147 +107,164 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="relative py-16 px-4">
-        <div className="container mx-auto max-w-7xl">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-dark-900 dark:text-white mb-2">
-                Explore Categories
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Find stories by topics that interest you
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {categories.map((category, index) => (
-              <Link
-                key={category._id}
-                href={`/categories/${category.slug}`}
-                className="card-premium card-glow group hover-lift animate-fade-in"
-                style={{ 
-                  animationDelay: `${index * 0.1}s`,
-                  borderTop: `3px solid ${category.color || '#10b981'}`
-                }}
-              >
-                <div className="text-center">
-                  <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-400 float">
-                    {category.icon}
-                  </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 transition-colors">
-                    {category.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 font-arabic mb-3" dir="rtl">
-                    {category.nameArabic}
-                  </p>
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
-                    style={{ 
-                      backgroundColor: `${category.color}15`,
-                      color: category.color 
-                    }}>
-                    <Headphones className="w-3 h-3" />
-                    {category.storyCount || 0}
-                  </div>
+      {/* Categories Section - HORIZONTAL SCROLL */}
+      <section className="relative py-16">
+        <HorizontalScroll
+          title="Explore Categories"
+          subtitle="Find stories by topics that interest you"
+          itemWidth={220}
+          gap={16}
+          actionButton={
+            <Link
+              href="/categories"
+              className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold group"
+            >
+              View All
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          }
+        >
+          {categories.map((category, index) => (
+            <Link
+              key={category._id}
+              href={`/categories/${category.slug}`}
+              className="card-premium card-glow group hover-lift animate-fade-in flex-shrink-0"
+              style={{ 
+                width: '220px',
+                animationDelay: `${index * 0.05}s`,
+                borderTop: `3px solid ${category.color || '#10b981'}`,
+                scrollSnapAlign: 'start'
+              }}
+            >
+              <div className="text-center">
+                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-400 float">
+                  {category.icon}
                 </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 transition-colors">
+                  {category.name}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-arabic mb-3" dir="rtl">
+                  {category.nameArabic}
+                </p>
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
+                  style={{ 
+                    backgroundColor: `${category.color}15`,
+                    color: category.color 
+                  }}>
+                  <Headphones className="w-3 h-3" />
+                  {category.storyCount || 0}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </HorizontalScroll>
       </section>
 
-      {/* Featured Stories */}
+      {/* Featured Stories - HORIZONTAL SCROLL */}
       {featuredStories.length > 0 && (
-        <section className="relative py-16 px-4">
-          <div className="container mx-auto max-w-7xl">
-            <div className="flex items-center justify-between mb-8">
+        <section className="relative py-16">
+          <HorizontalScroll
+            title={
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center">
                   <Star className="w-6 h-6 text-gold-500" fill="currentColor" />
                 </div>
                 <div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-dark-900 dark:text-white">
+                  <h2 className="text-2xl md:text-3xl font-bold text-dark-900 dark:text-white">
                     Featured Stories
                   </h2>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
                     Most loved by our community
                   </p>
                 </div>
               </div>
+            }
+            itemWidth={320}
+            gap={24}
+            actionButton={
               <Link
                 href="/stories?featured=true"
-                className="hidden md:flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold group"
+                className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold group"
               >
                 View All
                 <TrendingUp className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-            </div>
-
+            }
+          >
             {featuredLoading ? (
-              <div className="flex justify-center py-20">
+              <div className="flex justify-center py-20 w-full">
                 <Loader2 className="w-12 h-12 animate-spin text-primary-600" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredStories.slice(0, 6).map((story, index) => (
-                  <div key={story._id} className="animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <StoryCard story={story} variant="premium" />
-                  </div>
-                ))}
-              </div>
+              featuredStories.map((story, index) => (
+                <div 
+                  key={story._id} 
+                  className="flex-shrink-0 animate-scale-in" 
+                  style={{ 
+                    width: '320px',
+                    animationDelay: `${index * 0.05}s`,
+                    scrollSnapAlign: 'start'
+                  }}
+                >
+                  <StoryCard story={story} variant="premium" />
+                </div>
+              ))
             )}
-          </div>
+          </HorizontalScroll>
         </section>
       )}
 
-      {/* Latest Stories */}
-<section className="relative py-16 px-4">
-  <div className="container mx-auto max-w-7xl">
-    <div className="flex items-center justify-between mb-8">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center">
-          <TrendingUp className="w-6 h-6 text-primary-600" />
-        </div>
-        <div>
-          <h2 className="text-3xl md:text-4xl font-bold text-dark-900 dark:text-white">
-            Latest Additions
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Fresh stories added recently
-          </p>
-        </div>
-      </div>
-
-      <Link
-        href="/stories"
-        className="hidden md:flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold group"
-      >
-        View All
-        <TrendingUp className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-      </Link>
-    </div>
-
-    {latestLoading ? (
-      <div className="flex justify-center py-20">
-        <Loader2 className="w-12 h-12 animate-spin text-primary-600" />
-      </div>
-    ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {latestStories.slice(0, 8).map((story, index) => (
-          <div
-            key={story._id}
-            className="animate-fade-in-up"
-            style={{ animationDelay: `${index * 0.05}s` }}
-          >
-            <StoryCard story={story} variant="compact" />
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-</section>
-
+      {/* Latest Stories - HORIZONTAL SCROLL */}
+      <section className="relative py-16">
+        <HorizontalScroll
+          title={
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 glass rounded-2xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-primary-600" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-dark-900 dark:text-white">
+                  Latest Additions
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Fresh stories added recently
+                </p>
+              </div>
+            </div>
+          }
+          itemWidth={280}
+          gap={24}
+          actionButton={
+            <Link
+              href="/stories"
+              className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold group"
+            >
+              View All
+              <TrendingUp className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          }
+        >
+          {latestLoading ? (
+            <div className="flex justify-center py-20 w-full">
+              <Loader2 className="w-12 h-12 animate-spin text-primary-600" />
+            </div>
+          ) : (
+            latestStories.map((story, index) => (
+              <div 
+                key={story._id} 
+                className="flex-shrink-0 animate-fade-in-up"
+                style={{ 
+                  width: '280px',
+                  animationDelay: `${index * 0.03}s`,
+                  scrollSnapAlign: 'start'
+                }}
+              >
+                <StoryCard story={story} variant="compact" />
+              </div>
+            ))
+          )}
+        </HorizontalScroll>
+      </section>
 
       {/* CTA Section */}
       <section className="relative py-20 px-4">
