@@ -8,26 +8,32 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Audio storage
+// Audio storage - FIX: params as function
 const audioStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'islamic-stories/audio',
-    resource_type: 'video', // Use 'video' for audio files
-    allowed_formats: ['mp3', 'wav', 'm4a'],
-    public_id: (req, file) => `audio-${Date.now()}`,
+  params: async (req, file) => {
+    return {
+      folder: 'islamic-stories/audio',
+      resource_type: 'video', // Use 'video' for audio files
+      allowed_formats: ['mp3', 'wav', 'm4a', 'ogg'],
+      public_id: `audio-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      format: 'mp3', // Specify format
+    };
   },
 });
 
-// Image storage
+// Image storage - FIX: params as function
 const imageStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'islamic-stories/images',
-    resource_type: 'image',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    public_id: (req, file) => `thumbnail-${Date.now()}`,
-    transformation: [{ width: 800, height: 800, crop: 'limit' }]
+  params: async (req, file) => {
+    return {
+      folder: 'islamic-stories/images',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      public_id: `thumbnail-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
+      format: 'jpg', // Specify format
+    };
   },
 });
 
