@@ -27,40 +27,44 @@ const storySchema = new mongoose.Schema({
     required: true
   },
   audioUrl: {
-  type: String,
-  required: true,
-  get: function(url) {
-    // Convert http to https for Render deployments
-    if (url && url.startsWith('http://')) {
-      return url.replace('http://', 'https://');
+    type: String,
+    required: true,
+    get: function(url) {
+      if (url && url.startsWith('http://')) {
+        return url.replace('http://', 'https://');
+      }
+      return url;
     }
-    return url;
-  }
-},
+  },
   thumbnail: {
-  type: String,
-  get: function(url) {
-    if (url && url.startsWith('http://')) {
-      return url.replace('http://', 'https://');
+    type: String,
+    get: function(url) {
+      if (url && url.startsWith('http://')) {
+        return url.replace('http://', 'https://');
+      }
+      return url;
     }
-    return url;
-  }
-},
+  },
   duration: {
-    type: Number, // in seconds
+    type: Number,
     required: true
   },
   language: {
     type: String,
-    enum: ['hindi', 'urdu', 'english', 'arabic'],
-    default: 'hindi'
+    enum: {
+      values: ['hindi', 'urdu', 'english', 'arabic'],
+      message: 'Language must be one of: hindi, urdu, english, arabic'
+    },
+    default: 'hindi',
+    lowercase: true, // FIX: Auto-convert to lowercase
+    trim: true
   },
   narrator: {
     type: String,
     trim: true
   },
   source: {
-    type: String, // Book/Hadith reference
+    type: String,
     trim: true
   },
   ageGroup: {
@@ -124,7 +128,7 @@ storySchema.pre('insertMany', function(next, docs) {
   next();
 });
 
-// Index for search (using 'none' language for multilingual support)
+// Index for search
 storySchema.index({ title: 'text', description: 'text', tags: 'text' }, { default_language: 'none' });
 
 module.exports = mongoose.model('Story', storySchema);
